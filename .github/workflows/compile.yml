@@ -1,0 +1,27 @@
+name: Build luadec.exe
+
+on:
+  workflow_dispatch: # 允許你手動點擊按鈕觸發編譯
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive' # 自動拉取附帶的 lua 5.1/5.2/5.3 源碼
+
+      - name: Setup MSBuild and MSVC
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile LuaDec 5.1
+        run: |
+          cd vcproj-5.1
+          msbuild luadec.sln /p:Configuration=Release /p:Platform=Win32
+
+      - name: Upload Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: luadec-5.1-windows
+          path: bin/luadec.exe
