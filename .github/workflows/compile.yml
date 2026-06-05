@@ -1,4 +1,4 @@
-name: Build All LuaDec Versions
+name: Build All LuaDec Versions (GCC)
 
 on:
   workflow_dispatch:
@@ -12,32 +12,39 @@ jobs:
         lua-version: ['5.1', '5.2', '5.3']
 
     steps:
-      # 1. 升級至支援 Node.js 24 的 v4.2+ 版本
+      # 1. 拉取程式碼（升級至 Node.js 24 最新相容版）
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4.3.0
         with:
           submodules: 'recursive'
 
-      # 2. 升級至支援 VS2026/Node.js 24 的最新 v3 版本
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v3
+      # 2. 配置 Windows 內建的 MinGW (GCC) 編譯環境
+      - name: Setup MinGW
+        uses: egor-tisin/setup-gcc@v1
+        with:
+          version: 'latest'
 
-      # 3. 核心修復：在編譯前，強行將舊版的 .sln 升級轉譯為新版編譯器可讀的格式
-      - name: Upgrade Solution File
+      # 3. 先編譯對應版本的基底 Lua 依賴庫
+      - name: Build Lua Dependency
         run: |
-          devenv vcproj-${{ matrix.lua-version }}\luadec.sln /upgrade
+          cd lua-${{ matrix.lua-version }}
+          make generic
 
-      # 4. 執行編譯
-      - name: Compile LuaDec ${{ matrix.lua-version }}
+      # 4. 編譯 LuaDec 本體並輸出為執行檔
+      - name: Compile LuaDec
         run: |
-          msbuild vcproj-${{ matrix.lua-version }}\luadec.sln /p:Configuration=Release /p:Platform=Win32 /p:PlatformToolset=v143
-
-      - name: Rename executable for safety
+          cd luadec
+          make LUAVER=${{ matrix.lua-version }}
+          
+      # 5. 整理並重命名產出的執行檔
+      - name: Organize Executables
         run: |
-          mv bin/luadec.exe bin/luadec${{ matrix.lua-version }}.exe
+          mkdir -p output_bin
+          cp luadec/luadec.exe output_bin/luadec${{ matrix.lua-version }}.exe
 
+      # 6. 打包上傳
       - name: Upload Executable
         uses: actions/upload-artifact@v4
         with:
           name: luadec-all-windows-executables
-          path: bin/luadec${{ matrix.lua-version }}.exe
+          path: output_bin/*
