@@ -1,7 +1,7 @@
 name: Build All LuaDec Versions
 
 on:
-  workflow_dispatch: # 允許你手動點擊按鈕觸發編譯
+  workflow_dispatch:
 
 jobs:
   build:
@@ -9,25 +9,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 定義多個編譯矩陣，一次跑完 5.1, 5.2 和 5.3 
         lua-version: ['5.1', '5.2', '5.3']
 
     steps:
+      # 1. 升級至支援 Node.js 24 的 v4.2+ 版本
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
         with:
-          submodules: 'recursive' # 自動拉取附帶的對應 lua 版本源碼
+          submodules: 'recursive'
 
+      # 2. 升級至支援 VS2026/Node.js 24 的最新 v3 版本
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
+      # 3. 核心修復：在編譯前，強行將舊版的 .sln 升級轉譯為新版編譯器可讀的格式
+      - name: Upgrade Solution File
+        run: |
+          devenv vcproj-${{ matrix.lua-version }}\luadec.sln /upgrade
+
+      # 4. 執行編譯
       - name: Compile LuaDec ${{ matrix.lua-version }}
         run: |
-          msbuild vcproj-${{ matrix.lua-version }}\luadec.sln /p:Configuration=Release /p:Platform=Win32
+          msbuild vcproj-${{ matrix.lua-version }}\luadec.sln /p:Configuration=Release /p:Platform=Win32 /p:PlatformToolset=v143
 
       - name: Rename executable for safety
         run: |
-          # 為了避免都叫 luadec.exe 導致混淆，動態重新命名為對應版本（如 luadec5.1.exe）
           mv bin/luadec.exe bin/luadec${{ matrix.lua-version }}.exe
 
       - name: Upload Executable
