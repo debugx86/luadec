@@ -1,26 +1,37 @@
-name: Build luadec.exe
+name: Build All LuaDec Versions
 
 on:
   workflow_dispatch: # 允許你手動點擊按鈕觸發編譯
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 定義多個編譯矩陣，一次跑完 5.1, 5.2 和 5.3 
+        lua-version: ['5.1', '5.2', '5.3']
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive' # 自動拉取附帶的 lua 5.1/5.2/5.3 源碼
+          submodules: 'recursive' # 自動拉取附帶的對應 lua 版本源碼
 
-      - name: Setup MSBuild and MSVC
+      - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Compile LuaDec 5.1
+      - name: Compile LuaDec ${{ matrix:lua-version }}
         run: |
-          msbuild vcproj-5.1\luadec.sln /p:Configuration=Release /p:Platform=Win32
+          msbuild vcproj-${{ matrix.lua-version }}\luadec.sln /p:Configuration=Release /p:Platform=Win32
+
+      - name: Rename executable for safety
+        run: |
+          # 為了避免都叫 luadec.exe 導致混淆，動態重新命名為對應版本（如 luadec51.exe）
+          mv bin/luadec.exe bin/luadec${{ matrix.lua-version }}.exe
 
       - name: Upload Executable
         uses: actions/upload-artifact@v4
         with:
-          name: luadec-5.1-windows
-          path: bin/luadec.exe
+          name: luadec-all-windows-executables
+          path: bin/luadec${{ matrix.lua-version }}.exe
