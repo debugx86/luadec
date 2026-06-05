@@ -17,8 +17,7 @@ jobs:
 
       - name: Compile LuaDec 5.1
         run: |
-          cd vcproj-5.1
-          msbuild luadec.sln /p:Configuration=Release /p:Platform=Win32
+          msbuild vcproj-5.1\luadec.sln /p:Configuration=Release /p:Platform=Win32
 
       - name: Upload Executable
         uses: actions/upload-artifact@v4
