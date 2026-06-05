@@ -21,13 +21,13 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Compile LuaDec ${{ matrix:lua-version }}
+      - name: Compile LuaDec ${{ matrix.lua-version }}
         run: |
           msbuild vcproj-${{ matrix.lua-version }}\luadec.sln /p:Configuration=Release /p:Platform=Win32
 
       - name: Rename executable for safety
         run: |
-          # 為了避免都叫 luadec.exe 導致混淆，動態重新命名為對應版本（如 luadec51.exe）
+          # 為了避免都叫 luadec.exe 導致混淆，動態重新命名為對應版本（如 luadec5.1.exe）
           mv bin/luadec.exe bin/luadec${{ matrix.lua-version }}.exe
 
       - name: Upload Executable
